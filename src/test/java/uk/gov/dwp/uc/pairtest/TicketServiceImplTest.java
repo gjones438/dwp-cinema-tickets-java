@@ -3,6 +3,7 @@ package uk.gov.dwp.uc.pairtest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,15 +47,53 @@ class TicketServiceImplTest {
     }
 
     static Stream<Arguments> purchaseTicketsSuccessArgs() {
-        return Stream.of( //
-                Arguments.of(1, 2, 0, 55, 3), //
-                Arguments.of(1, 0, 1, 25, 1), //
-                Arguments.of(4, 2, 3, 130, 6), //
-                Arguments.of(1, 5, 0, 100, 6), //
-                Arguments.of(1, 1, 0, 40, 2), //
-                Arguments.of(10, 15, 0, 475, 25), //
-                Arguments.of(20, 0, 5, 500, 20) //
+        return Stream.of(
+                Arguments.of(1, 2, 0, 55, 3),
+                Arguments.of(1, 0, 1, 25, 1),
+                Arguments.of(4, 2, 3, 130, 6),
+                Arguments.of(1, 5, 0, 100, 6),
+                Arguments.of(1, 1, 0, 40, 2),
+                Arguments.of(10, 15, 0, 475, 25),
+                Arguments.of(20, 0, 5, 500, 20)
         );
+    }
+
+    @ParameterizedTest
+    @MethodSource("purchaseTicketsSuccessDuplicatesArgs")
+    void purchaseTicketsSuccessDuplicates(PurchaseTicketsTestArgs args) {
+        ticketService.purchaseTickets(ACCOUNT_ID, args.ticketRequests());
+
+        verify(ticketPaymentService).makePayment(ACCOUNT_ID, args.expectedCost());
+        verify(seatReservationService).reserveSeat(ACCOUNT_ID, args.expectedSeats());
+    }
+
+    static Stream<PurchaseTicketsTestArgs> purchaseTicketsSuccessDuplicatesArgs() {
+        return Stream.of(
+                new PurchaseTicketsTestArgs(85, 5, new TicketTypeRequest(TicketType.CHILD, 2),
+                        new TicketTypeRequest(TicketType.ADULT, 1),
+                        new TicketTypeRequest(TicketType.CHILD, 2)),
+                new PurchaseTicketsTestArgs(175, 7, new TicketTypeRequest(TicketType.ADULT, 2),
+                        new TicketTypeRequest(TicketType.ADULT, 5)),
+                new PurchaseTicketsTestArgs(190, 10, new TicketTypeRequest(TicketType.INFANT, 2),
+                        new TicketTypeRequest(TicketType.CHILD, 3),
+                        new TicketTypeRequest(TicketType.INFANT, 1),
+                        new TicketTypeRequest(TicketType.ADULT, 2),
+                        new TicketTypeRequest(TicketType.ADULT, 2),
+                        new TicketTypeRequest(TicketType.CHILD, 2),
+                        new TicketTypeRequest(TicketType.CHILD, 1))
+        );
+    }
+
+    private record PurchaseTicketsTestArgs(int expectedCost, int expectedSeats,
+            TicketTypeRequest... ticketRequests) {
+        @Override
+        public String toString() {
+            var ticketRequestStr = Stream.of(ticketRequests)
+                    .map(r -> "%s=%s".formatted(r.ticketType(), r.numberOfTickets()))
+                    .collect(Collectors.joining(", "));
+            return "%s expect %s seats costing £%s".formatted(ticketRequestStr, expectedSeats,
+                    expectedCost);
+        }
     }
 
     @Test
