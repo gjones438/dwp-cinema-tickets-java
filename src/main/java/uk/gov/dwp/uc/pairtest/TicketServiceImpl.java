@@ -42,7 +42,8 @@ public class TicketServiceImpl implements TicketService {
         if (ticketRequest.tickets() > 25) {
             throw new InvalidPurchaseException("Maximum of 25 tickets");
         }
-        if (ticketRequest.adults() == 0) {
+        if (ticketRequest.adults() == 0
+                && (ticketRequest.children() > 0 || ticketRequest.infants() > 0)) {
             throw new InvalidPurchaseException(
                     "Adult ticket required in order to buy child or infant tickets");
         }
