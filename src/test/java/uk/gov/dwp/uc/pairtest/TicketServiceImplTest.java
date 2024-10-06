@@ -5,17 +5,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import thirdparty.paymentgateway.TicketPaymentService;
 import thirdparty.seatbooking.SeatReservationService;
 import uk.gov.dwp.uc.pairtest.domain.TicketType;
 import uk.gov.dwp.uc.pairtest.domain.TicketTypeRequest;
 import uk.gov.dwp.uc.pairtest.exception.InvalidPurchaseException;
 
+@ExtendWith(MockitoExtension.class)
 class TicketServiceImplTest {
     static final long ACCOUNT_ID = 23;
 
@@ -50,7 +53,7 @@ class TicketServiceImplTest {
                 Arguments.of(1, 5, 0, 100, 6), //
                 Arguments.of(1, 1, 0, 40, 2), //
                 Arguments.of(10, 15, 0, 475, 25), //
-                Arguments.of(25, 0, 25, 625, 25) //
+                Arguments.of(20, 0, 5, 500, 20) //
         );
     }
 
@@ -83,16 +86,17 @@ class TicketServiceImplTest {
         var ticketRequest = new TicketTypeRequest(TicketType.ADULT, 0);
         var e = assertThrows(InvalidPurchaseException.class,
                 () -> ticketService.purchaseTickets(ACCOUNT_ID, ticketRequest));
-        assertEquals("Minimun of 1 seat required", e.getMessage());
+        assertEquals("Minimum of 1 ticket required", e.getMessage());
     }
 
     @Test
     void purchaseTicketsMaximum25Seats() {
         var adultRequest = new TicketTypeRequest(TicketType.ADULT, 20);
-        var childRequest = new TicketTypeRequest(TicketType.CHILD, 6);
-        var e = assertThrows(InvalidPurchaseException.class,
-                () -> ticketService.purchaseTickets(ACCOUNT_ID, adultRequest, childRequest));
-        assertEquals("Maximum of 25 seats", e.getMessage());
+        var childRequest = new TicketTypeRequest(TicketType.CHILD, 3);
+        var infantRequest = new TicketTypeRequest(TicketType.INFANT, 3);
+        var e = assertThrows(InvalidPurchaseException.class, () -> ticketService
+                .purchaseTickets(ACCOUNT_ID, adultRequest, childRequest, infantRequest));
+        assertEquals("Maximum of 25 tickets", e.getMessage());
     }
 
     @Test
